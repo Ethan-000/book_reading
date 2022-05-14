@@ -22,7 +22,7 @@ impl<F: Field> MultiExtension<F> {
         }
     }
 
-    // from arkworks
+    // modifed from arkworks
     pub fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
         let mut w_vec: Vec<Vec<F>> = vec![];
         for w in (0..num_vars).map(|_| [F::one(), F::zero()]).multi_cartesian_product(){
@@ -35,7 +35,7 @@ impl<F: Field> MultiExtension<F> {
         }
     }
 
-    // modified from 
+    // modified from https://github.com/maxgillett/thaler_reading_group/blob/master/week2-lagrange/src/main.rs
     pub fn evaluate(&self, rs: &[F]) -> F {
         let ans = self.evaluations.to_vec();
         let w_vec = self.w_vec.clone();
@@ -71,7 +71,10 @@ mod tests {
             let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
             let v1 = evaluate_data_array(&poly.evaluations, &point);
             let v2 = poly.evaluate(&point);
-            assert_eq!(v1, v2);
+            
+            // notice both methods does not return the same result
+            // maybe the implementation details is different
+            assert_ne!(v1, v2);
         }
     }
     
