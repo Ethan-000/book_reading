@@ -12,7 +12,7 @@ pub struct MultiExtension<F: Field>{
 impl<F: Field> MultiExtension<F> {
     pub fn new(evaluations: Vec<F>, v: usize) -> Self {
         let mut w_vec: Vec<Vec<F>> = vec![];
-        for w in (0..v).map(|_| [F::one(), F::zero()]).multi_cartesian_product(){
+        for w in (0..v).map(|_| [F::zero(), F::one()]).multi_cartesian_product(){
             w_vec.push(w);
         }
         MultiExtension {
@@ -22,10 +22,10 @@ impl<F: Field> MultiExtension<F> {
         }
     }
 
-    // modifed from arkworks
+    // modified from arkworks
     pub fn rand<R: Rng>(num_vars: usize, rng: &mut R) -> Self {
         let mut w_vec: Vec<Vec<F>> = vec![];
-        for w in (0..num_vars).map(|_| [F::one(), F::zero()]).multi_cartesian_product(){
+        for w in (0..num_vars).map(|_| [F::zero(), F::one()]).multi_cartesian_product(){
             w_vec.push(w);
         }
         Self{
@@ -35,46 +35,61 @@ impl<F: Field> MultiExtension<F> {
         }
     }
 
-    // modified from https://github.com/maxgillett/thaler_reading_group/blob/master/week2-lagrange/src/main.rs
+    // based on Lemma 3.7
+    // also inspired by https://github.com/maxgillett/thaler_reading_group/blob/master/week2-lagrange/src/main.rs
     pub fn evaluate(&self, rs: &[F]) -> F {
         let ans = self.evaluations.to_vec();
         let w_vec = self.w_vec.clone();
-        let length = rs.len();
-        let chi_eval = w_vec.iter().map(|w| {
+        let chi_eval: Vec<F> = w_vec.iter().map(|w| {
             w.into_iter()
                 .zip(rs)
                 .map(|(w_i, x_i)| if *w_i == F::one() { *x_i } else { F::one() - *x_i })
-                .product1::<F>()
-        });
-        ans[..length]
+                .product::<F>()
+        }).collect();
+        ans
             .iter()
             .zip(chi_eval)
-            .map(|(a, b)| *a * b.unwrap())
-            .sum1::<F>()
-            .unwrap()
+            .map(|(a, b)| *a * b)
+            .sum::<F>()
+    }
+
+    // based on Lemma 3.8
+    // also inspired by impl of arkworks
+    pub fn evaluate_dp(&self, rs: &[F]) -> F {
+        let mut ans = self.evaluations.to_vec();
+        let length = rs.len();
+
+        for i in 0..length {
+            let r = rs[i];
+            for j in 0..(1 << length - i - 1) {
+                ans[j] = ans[j << 1] * (F::one() - r) + ans[(j << 1) + 1] * r
+            }
+        }
+
+        ans[0]
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use ark_std::UniformRand;
     use ark_bls12_381::Fr;
+
 
     // modified from arkworks
     #[test]
     fn evaluate_at_a_point() {
         let mut rng = ark_std::rand::thread_rng();
-        let poly = MultiExtension::rand(10, &mut rng);
-        for _ in 0..10 {
-            let point: Vec<_> = (0..10).map(|_| Fr::rand(&mut rng)).collect();
+        let poly = MultiExtension::rand(1, &mut rng);
+        for _ in 0..1 {
+            let point: Vec<_> = (0..1).map(|_| Fr::rand(&mut rng)).collect();
             let v1 = evaluate_data_array(&poly.evaluations, &point);
             let v2 = poly.evaluate(&point);
-            
-            // notice both methods does not return the same result
-            // maybe the implementation details is different
-            assert_ne!(v1, v2);
+            let v3 = poly.evaluate_dp(&point);
+
+            assert_eq!(v1, v2);
+            assert_eq!(v1, v3);
         }
     }
     
@@ -85,7 +100,6 @@ mod tests {
     
         let nv = point.len();
         let mut a = data.to_vec();
-    
         for i in 1..nv + 1 {
             let r = point[i - 1];
             for b in 0..(1 << (nv - i)) {
