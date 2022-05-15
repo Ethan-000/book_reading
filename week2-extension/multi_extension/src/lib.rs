@@ -53,6 +53,27 @@ impl<F: Field> MultiExtension<F> {
             .sum::<F>()
     }
 
+    // a recursive method modified from on https://github.com/0xSage/thaler/blob/main/src/lagrange.rs
+    pub fn evaluate_rec(&self, rs: &[F]) -> F {
+        let ans = self.evaluations.to_vec();
+        let length = ans.len();
+        self.evaluate_rec_helper(&ans, &self.w_vec.clone(), rs, length)
+    }
+
+    fn evaluate_rec_helper(&self, ans: &Vec<F>, w_vec: &Vec<Vec<F>>, rs: &[F], length: usize) -> F {
+        match length {
+            0 => F::zero(),
+            _ => self.evaluate_rec_helper(&ans, &w_vec, rs, length - 1) +
+                ans[length - 1] * {
+                    w_vec[length - 1]
+                        .iter()
+                        .zip(rs)
+                        .map(|(&w, &r)| if w == F::one() { r } else { F::one() - r })
+                        .product::<F>()
+                },       
+        }
+    }
+
     // based on Lemma 3.8
     // also inspired by impl of arkworks
     pub fn evaluate_dp(&self, rs: &[F]) -> F {
@@ -86,10 +107,12 @@ mod tests {
             let point: Vec<_> = (0..1).map(|_| Fr::rand(&mut rng)).collect();
             let v1 = evaluate_data_array(&poly.evaluations, &point);
             let v2 = poly.evaluate(&point);
-            let v3 = poly.evaluate_dp(&point);
+            let v3 = poly.evaluate_rec(&point);
+            let v4 = poly.evaluate_dp(&point);
 
             assert_eq!(v1, v2);
             assert_eq!(v1, v3);
+            assert_eq!(v1, v4);
         }
     }
     
