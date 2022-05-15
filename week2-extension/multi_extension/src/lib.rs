@@ -53,7 +53,7 @@ impl<F: Field> MultiExtension<F> {
             .sum::<F>()
     }
 
-    // a recursive method modified from on https://github.com/0xSage/thaler/blob/main/src/lagrange.rs
+    // a recursive method modified from https://github.com/0xSage/thaler/blob/main/src/lagrange.rs
     pub fn evaluate_rec(&self, rs: &[F]) -> F {
         let ans = self.evaluations.to_vec();
         let length = ans.len();
