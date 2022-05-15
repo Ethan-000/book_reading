@@ -89,6 +89,35 @@ impl<F: Field> MultiExtension<F> {
 
         ans[0]
     }
+
+    // a dp method modified from https://github.com/0xSage/thaler/blob/main/src/lagrange.rs
+    pub fn evaluate_dp_2(&self, rs: &[F]) -> F {
+        let ans = self.evaluations.to_vec();
+
+        let chi_eval = self.memoize(&rs.to_vec(), rs.len());
+        ans
+            .iter()
+            .zip(chi_eval)
+            .map(|(a, b)| *a * b)
+            .sum::<F>()
+    }
+
+    fn memoize(&self, rs: &Vec<F>, v: usize) -> Vec<F> {
+        match v {
+            1 => {
+                vec![ F::one() - rs[v - 1], rs[v - 1] ]
+            }
+            _ => self.memoize(rs, v - 1)
+                .iter()
+                .flat_map(|val| {
+                    [
+                        *val * (F::one() - rs[v - 1]),
+                        *val * rs[v - 1],
+                    ]
+                })
+                .collect(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -109,10 +138,12 @@ mod tests {
             let v2 = poly.evaluate(&point);
             let v3 = poly.evaluate_rec(&point);
             let v4 = poly.evaluate_dp(&point);
+            let v5 = poly.evaluate_dp_2(&point);
 
             assert_eq!(v1, v2);
             assert_eq!(v1, v3);
             assert_eq!(v1, v4);
+            assert_eq!(v1, v5);
         }
     }
     
