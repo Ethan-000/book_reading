@@ -2,18 +2,18 @@
 use crate::sumcheck::protocol::IPForSumCheck;
 use crate::sumcheck::protocol::verifier::VerifierMsg;
 use crate::sumcheck::polynomial_rep::PolynomialRep;
-use ark_ff::Field;
+use ark_ff::PrimeField;
 use ark_poly::{DenseMultilinearExtension, MultilinearExtension};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Read, SerializationError, Write};
 
 
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-pub struct ProverMsg<F: Field> {
+pub struct ProverMsg<F: PrimeField> {
     pub evaluations: Vec<F>,
 }
 
-pub struct ProverState<F: Field> {
+pub struct ProverState<F: PrimeField> {
     random_points: Vec<F>,
     round: usize,
     pub max_num_multiplicands: usize,
@@ -25,13 +25,10 @@ pub struct ProverState<F: Field> {
 }
 
 
-
-impl<F: Field> IPForSumCheck<F>{
+impl<F: PrimeField> IPForSumCheck<F>{
     pub fn prover_init(
         polynomial_rep: &PolynomialRep<F>,
     ) -> ProverState<F> {
-
-        
 
         let poly_extension = polynomial_rep
                         .poly_extensions
@@ -78,8 +75,6 @@ impl<F: Field> IPForSumCheck<F>{
         let round = prover_state.round;
         let num_variables = prover_state.num_of_variables;
         let degree = prover_state.max_num_multiplicands; 
-
-       
 
         let mut evaluation_sum = Vec::with_capacity(degree + 1);
         evaluation_sum.resize(degree + 1, F::zero());
