@@ -1,6 +1,5 @@
 
 
-use ark_ff::{Field, PrimeField, FpParameters};
 use ark_bls12_381::Fq as F;
 use ark_std::UniformRand;
 use ndarray::{Array1, Array2};
@@ -15,11 +14,8 @@ impl Freivalds {
     pub fn set_up(a: Array2<F>, b: Array2<F>) -> Self {
         let mut rng = ark_std::rand::thread_rng();
         let r = F::rand(&mut rng);
-        let modulus = <F as PrimeField>::Params::MODULUS;
-        let r = r.pow(&modulus);
         let n = a.shape()[0];
-        let rs = r.clone();
-        let mut x = Array1::from(vec![rs; n]);
+        let mut x = Array1::from(vec![r; n]);
         for i in 1..n {
             let mut tmp = x[i-1].clone();
             tmp = tmp * &r;
